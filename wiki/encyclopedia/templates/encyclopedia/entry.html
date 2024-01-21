@@ -1,0 +1,10 @@
+{% extends "encyclopedia/layout.html" %}
+{% load custom_filters %}
+
+{% block title %}
+    {{ title }}
+{% endblock %}
+
+{% block body %}
+    <div> {{ content | markdownify | safe }}</div>
+{% endblock %}
