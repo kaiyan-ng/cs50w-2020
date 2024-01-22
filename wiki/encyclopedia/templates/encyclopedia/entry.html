@@ -7,4 +7,5 @@
 
 {% block body %}
     <div> {{ content | markdownify | safe }}</div>
+    <div> <a href="{% url 'edit' title=title %}">Edit</a></div>
 {% endblock %}
