@@ -2,6 +2,30 @@
 
 {% block body %}
     <h2>Active Listings</h2>
-
-    TODO
+    {% if not listings %}
+    <h3> There is no active listing available. </h3>
+    {% else %}
+    {% for listing in listings %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="container">
+                <div class="row">
+                  <div class="col-sm">
+                    <img style="max-height:250px;" src="{{ listing.image_url }}" alt="{{ listing.title }}">
+                  </div>
+                  <div class="col-sm">
+                    <h5 class="card-title">{{ listing.title }}</h5>
+                    <p class="card-text"><b>Price:</b> ${{  listing.price }}</p>
+                    {% if listing.description %}
+                    <p class="card-text">{{ listing.description }}</p>
+                    {% endif %}
+                    <br>
+                    <p class="card-text">Created {{ listing.created_at }}</p>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% endif %}
 {% endblock %}
