@@ -2,10 +2,9 @@
 
 {% block body %}
     <h2>Active Listings</h2>
-    {% if not listings %}
-    <h3> There is no active listing available. </h3>
-    {% else %}
+    {% if listings %}
     {% for listing in listings %}
+    <a href="{% url 'details' id=listing.id %}" class="list-group-item-action">
     <div class="card mt-3">
         <div class="card-body">
             <div class="container">
@@ -18,14 +17,17 @@
                     <p class="card-text"><b>Price:</b> ${{  listing.price }}</p>
                     {% if listing.description %}
                     <p class="card-text">{{ listing.description }}</p>
-                    {% endif %}
                     <br>
-                    <p class="card-text">Created {{ listing.created_at }}</p>
+                    {% endif %}
+                    <p class="card-text text-muted"><small>Created {{ listing.created_at }}</small></p>
                   </div>
                 </div>
               </div>
         </div>
       </div>
+    </a>
       {% endfor %}
+      {% else %}
+      <h3> There is no active listing available. </h3>
     {% endif %}
 {% endblock %}

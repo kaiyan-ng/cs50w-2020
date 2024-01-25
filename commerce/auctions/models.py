@@ -18,7 +18,7 @@ class Listings(models.Model):
 
     def __str__(self):
         status = "active" if self.active else "closed"
-        return f"Listing {self.id}: {self.title} is {status} with a starting price of {self.starting_price}"
+        return f"Listing {self.id}: {self.title} is {status} with a starting price of {self.price}"
 
 class Bids(models.Model):
     bid_price = models.DecimalField(max_digits=10,decimal_places=2)
