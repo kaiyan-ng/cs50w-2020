@@ -1,7 +1,34 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
-
     <h2>Watchlist</h2>
+    {% if listings %}
+    {% for listing in listings %}
+    <a href="{% url 'details' id=listing.listing.id %}" class="list-group-item-action">
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="container">
+                <div class="row">
+                  <div class="col-sm">
+                    <img style="max-height:250px;" src="{{ listing.listing.image_url }}" alt="{{ listing.listing.title }}">
+                  </div>
+                  <div class="col-sm">
+                    <h5 class="card-title">{{ listing.listing.title }}</h5>
+                    <p class="card-text"><b>Price:</b> ${{  listing.listing.price }}</p>
+                    {% if listing.listing.description %}
+                    <p class="card-text">{{ listing.listing.description }}</p>
+                    <br>
+                    {% endif %}
+                    <p class="card-text text-muted"><small>Created {{ listing.listing.created_at }}</small></p>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+    </a>
+      {% endfor %}
+      {% else %}
+      <p> There is no listing added to your watchlist. </p>
+    {% endif %}
 
 {% endblock %}

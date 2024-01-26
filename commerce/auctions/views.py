@@ -1,10 +1,11 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django import forms
-from .models import User, Listings, Bids, Comments
+from .models import User, Listings, Bids, Comments, Watchlist
 
 class NewBidForm(forms.Form):
     bid = forms.DecimalField(
@@ -16,9 +17,18 @@ class NewBidForm(forms.Form):
 
 def index(request):
     active_listings = Listings.objects.filter(active=True)
-    return render(request, "auctions/index.html", {
-        "listings":active_listings
-    })
+    # Get the current user's watchlist items
+    if request.user.is_authenticated:
+        watchlist_items = Watchlist.objects.filter(user=request.user)
+        watchlist_length = watchlist_items.count()  # Get the count of watchlist items
+        return render(request, "auctions/index.html", {
+            "listings":active_listings, 
+            "watchlist_count": watchlist_length
+        })
+    else:
+        return render(request, "auctions/index.html", {
+            "listings":active_listings
+        })
 
 
 def login_view(request):
@@ -72,7 +82,7 @@ def register(request):
     else:
         return render(request, "auctions/register.html")
 
-
+@login_required
 def create_listing(request):
     categories = ["Fashion", "Electronics", "Toys", "Home", "Beauty", "Sports", "Art", "Collectibles", "Baby"]
     if request.method == "POST":
@@ -91,8 +101,11 @@ def create_listing(request):
     else: 
         categories.sort()
         if request.user.is_authenticated:
+            watchlist_items = Watchlist.objects.filter(user=request.user)
+            watchlist_length = watchlist_items.count()  # Get the count of watchlist items
             return render(request, "auctions/create_listing.html",{
-                "categories": categories
+                "categories": categories,
+                "watchlist_count": watchlist_length
             })
         else:
             return HttpResponseRedirect(reverse("login"))
@@ -101,8 +114,22 @@ def create_listing(request):
 def listing_details(request, id):
     listing = Listings.objects.get(pk=id)
     bids = Bids.objects.filter(listing_id=id)
-    last_bidder = bids.order_by('-created_at').first().bidder
+    if bids.exists():  # Check if there are any bids
+        last_bidder = bids.order_by('-created_at').first().bidder
+    else:
+        last_bidder = None
     comments = Comments.objects.filter(listing_id=id).order_by('-created_at')
+    if request.user.is_authenticated:
+        watchlist_items = Watchlist.objects.filter(user=request.user)
+        listing_added_to_watchlist = False
+        if watchlist_items.exists():
+            watchlist_length = watchlist_items.count()
+            for watchlist_item in watchlist_items:
+                if listing.id == watchlist_item.listing.id:
+                    listing_added_to_watchlist = True
+                    break 
+        else: 
+            watchlist_length = 0
     if request.method == "POST":
         if "bid" in request.POST:
             bid_form = NewBidForm(request.POST)
@@ -116,7 +143,9 @@ def listing_details(request, id):
                         "bid_form": bid_form,
                         "bid_message": message,
                         "last_bidder": last_bidder,
-                        "comments": comments
+                        "comments": comments,
+                        "watchlist_count":watchlist_length,
+                        "added_to_watchlist": listing_added_to_watchlist
                     })
                 elif len(bids) == 0 and bid < listing.price:
                     message = "Your bid must be at least as large as the starting bid"
@@ -125,7 +154,9 @@ def listing_details(request, id):
                         "bids": len(bids),
                         "bid_form": bid_form,
                         "bid_message": message,
-                        "comments": comments
+                        "comments": comments,
+                        "watchlist_count":watchlist_length,
+                        "added_to_watchlist": listing_added_to_watchlist
                     })
                 else: 
                     # Add new bid to Bids Table
@@ -144,7 +175,9 @@ def listing_details(request, id):
                     "bid_form": bid_form,
                     "bid_message":message,
                     "last_bidder": last_bidder,
-                    "comments": comments
+                    "comments": comments,
+                    "watchlist_count":watchlist_length,
+                    "added_to_watchlist": listing_added_to_watchlist
                 })
         elif "comment" in request.POST:
                 comment = request.POST["comment"]
@@ -156,7 +189,9 @@ def listing_details(request, id):
                     "bid_form": NewBidForm(),
                     "last_bidder": last_bidder,
                     "comments": comments,
-                    "comment_message": message
+                    "comment_message": message,
+                    "watchlist_count":watchlist_length,
+                    "added_to_watchlist": listing_added_to_watchlist
                 })
                 else:
                     new_comment = Comments(comment=comment, commenter=request.user.username, listing_id=listing)
@@ -169,11 +204,20 @@ def listing_details(request, id):
             "bids": len(bids),
             "bid_form": NewBidForm(),
             "last_bidder": last_bidder,
-            "comments": comments
-        })
+            "comments": comments,
+            "watchlist_count":watchlist_length,
+            "added_to_watchlist": listing_added_to_watchlist
+            })
         else:
-            return HttpResponseRedirect(reverse("login"))
-        
+            return render(request, "auctions/listing_page.html", {
+            "details": listing,
+            "bids": len(bids),
+            "bid_form": NewBidForm(),
+            "last_bidder": last_bidder,
+            "comments": comments
+            })
+    
+@login_required
 def close_bid(request, id):
     # Update listing to closed
     listing = Listings.objects.get(pk=id)
@@ -181,5 +225,26 @@ def close_bid(request, id):
     listing.save()
     return HttpResponseRedirect((reverse("details", args=[id])))
 
+@login_required
+def add_to_watchlist(request, id):
+    listing = Listings.objects.get(pk=id)
+    user = request.user 
+    new_addition = Watchlist(listing=listing, user=user)
+    new_addition.save()
+    return HttpResponseRedirect((reverse("details", args=[id])))
+    
+@login_required
+def remove_from_watchlist(request, id):
+    listing = Listings.objects.get(pk=id)
+    user = request.user
+    remove = Watchlist.objects.get(listing=listing, user=user)
+    remove.delete()
+    return HttpResponseRedirect((reverse("details", args=[id])))
+
+@login_required
 def watchlist(request):
-    return render(request, "auctions/watchlist.html")
+    watchlist_items = Watchlist.objects.filter(user=request.user)
+    watchlist_length = watchlist_items.count()
+    return render(request, "auctions/watchlist.html", {
+        "listings":watchlist_items
+    })

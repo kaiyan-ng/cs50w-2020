@@ -37,3 +37,12 @@ class Comments(models.Model):
     
     def __str__(self):
         return f"Listing {self.listing_id}: {self.commenter} added a comment - {self.comment}"
+    
+class Watchlist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    listing = models.ForeignKey(Listings, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'listing')
+        """ensures that each combination of user and listing is unique in the database. 
+        This means that a user cannot add the same listing to their watchlist multiple times. """

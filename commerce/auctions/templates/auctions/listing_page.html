@@ -2,7 +2,28 @@
 
 {% block body %}
 
-    <h2>Listing: {{ details.title }}</h2>
+    <div style="padding: 10px;">
+        <div class="row">
+            <h2 class="pr-3">Listing: {{ details.title }}</h2>
+                {% if request.user.is_authenticated and not added_to_watchlist and not details.owner == request.user.username %}
+                <form action="{% url 'add-to-watchlist' id=details.id %}" method="get">
+                    {% csrf_token %}
+                    <input class="btn btn-outline-primary" type="submit" value="+ Add to Watchlist">
+                </form>
+                {% elif request.user.is_authenticated and added_to_watchlist and not details.owner == request.user.username %}
+                <form action="{% url 'remove-from-watchlist' id=details.id %}" method="get">
+                    {% csrf_token %}
+                    <input class="btn btn-primary" type="submit" value="Remove from Watchlist">
+                </form>
+                {% endif %}
+        </div>
+        {% if request.user.is_authenticated and added_to_watchlist and not details.owner == request.user.username %}
+        <div class="row">
+            <span class="badge badge-secondary">Watchlist</span>
+        </div>
+        {% endif %}
+    </div>
+    
     <img style="max-height:350px;"src="{{ details.image_url }}" alt="{{ details.title }}">
     <p>{{ details.description }}</p>
     <h3>${{ details.price }} </h3>
@@ -14,34 +35,41 @@
     </small>
     {% endif %}
 
-    {% if details.active %}
-        {% if details.owner == request.user.username %}
-        <form action="{% url 'closed' id=details.id %}" method="get">
-            {% csrf_token %}
-            {% if bids > 0 %}
-            <input class="btn btn-primary" type="submit" value="Close Bid">
+    {% if request.user.is_authenticated %}
+        {% if details.active %}
+            {% if details.owner == request.user.username %}
+            <form action="{% url 'closed' id=details.id %}" method="get">
+                {% csrf_token %}
+                {% if bids > 0 %}
+                <input class="btn btn-primary" type="submit" value="Close Bid">
+                {% else %}
+                <input class="btn btn-primary" type="submit" value="Close Bid" disabled>
+                {% endif %}
+            </form>
             {% else %}
-            <input class="btn btn-primary" type="submit" value="Close Bid" disabled>
+            <form action="{% url 'details' id=details.id %}" method="post">
+                {% csrf_token %}
+                <div class="form-group">
+                {{ bid_form }}
+                <!--<input autofocus class="form-control" type="text" name="bid" placeholder="Bid" required>-->
+                </div>
+                
+                <input class="btn btn-primary" type="submit" value="Place Bid">
+            </form>
             {% endif %}
-        </form>
         {% else %}
-        <form action="{% url 'details' id=details.id %}" method="post">
-            {% csrf_token %}
-            <div class="form-group">
-            {{ bid_form }}
-            <!--<input autofocus class="form-control" type="text" name="bid" placeholder="Bid" required>-->
-            </div>
-            
-            <input class="btn btn-primary" type="submit" value="Place Bid">
-        </form>
+            {% if last_bidder == request.user.username %}
+            <p><b>Congratulations! You have won the bid!</b></p>
+            {% else %}
+            <p><b>Bid Closed! The winner is {{last_bidder}}!</b></p>
+            {% endif %}
         {% endif %}
     {% else %}
-        {% if last_bidder == request.user.username %}
-        <p><b>Congratulations! You have won the bid!</b></p>
+        {% if details.active %}
+        <p><b><a href="{% url 'login' %}">Log In</a> / <a href="{% url 'register' %}">Register</a> an account to place bids</b></p>
         {% else %}
         <p><b>Bid Closed! The winner is {{last_bidder}}!</b></p>
         {% endif %}
-
     {% endif %}
     
     {% if bid_message %}
@@ -59,6 +87,7 @@
     </ul>
 
     <h4 class="mt-5">Comments</h4>
+    {% if request.user.is_authenticated %}
     <form action="{% url 'details' id=details.id %}" method="post">
         {% csrf_token %}
         <div class="form-group">
@@ -66,6 +95,7 @@
         </div>
         <input class="btn btn-primary" type="submit" value="Comment">
     </form>
+    {% endif %}
 
     {% if comment_message %}
         <small class="text-danger"> {{ comment_message }}</small>
