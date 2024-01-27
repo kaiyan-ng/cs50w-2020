@@ -7,6 +7,9 @@ from django.urls import reverse
 from django import forms
 from .models import User, Listings, Bids, Comments, Watchlist
 
+categories = ["Fashion", "Electronics", "Toys", "Home", "Beauty", "Sports", "Art", "Collectibles", "Baby"]
+categories.sort()
+
 class NewBidForm(forms.Form):
     bid = forms.DecimalField(
         label="", 
@@ -84,7 +87,6 @@ def register(request):
 
 @login_required
 def create_listing(request):
-    categories = ["Fashion", "Electronics", "Toys", "Home", "Beauty", "Sports", "Art", "Collectibles", "Baby"]
     if request.method == "POST":
         title = request.POST["title"]
         description = request.POST["description"]
@@ -99,7 +101,6 @@ def create_listing(request):
         new_listing.save()
         return HttpResponseRedirect(reverse("index"))
     else: 
-        categories.sort()
         if request.user.is_authenticated:
             watchlist_items = Watchlist.objects.filter(user=request.user)
             watchlist_length = watchlist_items.count()  # Get the count of watchlist items
@@ -246,5 +247,39 @@ def watchlist(request):
     watchlist_items = Watchlist.objects.filter(user=request.user)
     watchlist_length = watchlist_items.count()
     return render(request, "auctions/watchlist.html", {
-        "listings":watchlist_items
+        "listings":watchlist_items,
+        "watchlist_count":watchlist_length
     })
+
+def all_categories(request):
+    if request.user.is_authenticated:
+        watchlist_items = Watchlist.objects.filter(user=request.user)
+        watchlist_length = watchlist_items.count()
+        return render(request, "auctions/categories.html", {
+        "categories": categories,
+        "watchlist_count":watchlist_length
+    })
+    else:
+        return render(request, "auctions/categories.html", {
+         "categories": categories
+    })
+
+def category(request, name):
+    if name not in categories:
+        listings = Listings.objects.filter(active=True).exclude(category__in=categories)
+    else:
+        listings = Listings.objects.filter(active=True, category=name)
+    if request.user.is_authenticated:
+        watchlist_items = Watchlist.objects.filter(user=request.user)
+        watchlist_length = watchlist_items.count()
+        return render(request, "auctions/category.html", {
+        "category": name,
+        "listings": listings,
+        "watchlist_count":watchlist_length
+    })
+    else:
+        return render(request, "auctions/category.html", {
+         "category": name,
+         "listings": listings
+    })
+    

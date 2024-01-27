@@ -7,10 +7,10 @@ class User(AbstractUser):
 
 class Listings(models.Model):
     title = models.TextField()
-    description = models.TextField(null=True)
+    description = models.TextField(null=True, blank=True)
     price = models.DecimalField(max_digits=10,decimal_places=2)
-    image_url = models.TextField(null=True)
-    category = models.TextField(null=True)
+    image_url = models.TextField(null=True, blank=True)
+    category = models.TextField(null=True, blank=True)
     owner = models.TextField()
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
