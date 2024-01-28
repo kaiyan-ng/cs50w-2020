@@ -15,13 +15,16 @@ document.addEventListener('DOMContentLoaded', function() {
     send_email();
   })
 
+
 });
 
 function compose_email() {
 
   // Show compose view and hide other views
   document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#email-content-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'block';
+  
 
   // Clear out composition fields
   document.querySelector('#compose-recipients').value = '';
@@ -33,6 +36,7 @@ function load_mailbox(mailbox) {
   
   // Show the mailbox and hide other views
   document.querySelector('#emails-view').style.display = 'block';
+  document.querySelector('#email-content-view').style.display = 'none';
   document.querySelector('#compose-view').style.display = 'none';
 
   // Show the mailbox name
@@ -55,12 +59,15 @@ function load_mailbox(mailbox) {
         email_div.classList.add('border', 'border-dark', 'd-flex', 'p-2');
 
         // Set background color based on read status
-        const background = email.read ? 'bg-light' : 'bg-white';
+        const background = email.read ? 'bg-white' : 'bg-light';
         email_div.classList.add(background);
+
+        // Set id attribute for div as email's id
+        //email_div.setAttribute('id', `${email.id}`)
 
         // Construct inner HTML for the email div
         email_div.innerHTML = `
-        <div class="container">
+        <div class="container ">
         <div class="row">
           <div class="col-md-auto">
             <b>${email.sender}</b>
@@ -74,6 +81,9 @@ function load_mailbox(mailbox) {
         </div>
         `;
 
+        email_div.addEventListener('click', event => {
+          load_email(email.id)
+        })
         // Append the email div to the emails view
         emails_div.append(email_div);
 
@@ -82,6 +92,55 @@ function load_mailbox(mailbox) {
   .catch(error => {
     console.error('Error fetching emails:', error);
   });
+}
+
+function load_email(id){
+
+  // Show the email content and hide other views
+  document.querySelector('#emails-view').style.display = 'none';
+  document.querySelector('#email-content-view').style.display = 'block';
+  document.querySelector('#compose-view').style.display = 'none';
+
+  // Clear existing email content
+  document.querySelector('#email-content-view').innerHTML = '';
+
+  // Mark email as read
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        read: true
+    })
+  });
+
+  // Load email content
+  fetch(`/emails/${id}`)
+  .then(response => response.json())
+  .then(email => {
+      // Print email
+      console.log(email);
+
+      // ... do something else with email ...
+      // Display email content
+      const content_div = document.createElement('div');
+      content_div.innerHTML = `
+        <p><b>From:</b> ${email.sender}</p>
+        <p><b>To:</b> ${email.recipients}</p>
+        <p><b>Subject:</b> ${email.subject}</p>
+        <p><b>Timestemp:</b> ${email.timestamp}</p>
+        <button id="reply-email" class="btn btn-outline-primary">Reply</button>
+        <hr>
+        <p>${email.body}<p>
+      `;
+      document.querySelector('#email-content-view').append(content_div);
+
+      document.querySelector("#reply-email").addEventListener('click', event =>{
+        event.preventDefault();
+      })
+  })
+  .catch(error => {
+    console.error('Error fetching email:', error);
+  });
+
 }
 
 function send_email(){
