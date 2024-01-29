@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', function() {
     send_email();
   })
 
-
 });
 
 function compose_email() {
@@ -82,7 +81,7 @@ function load_mailbox(mailbox) {
         `;
 
         email_div.addEventListener('click', event => {
-          load_email(email.id)
+          load_email(email.id, mailbox)
         })
         // Append the email div to the emails view
         emails_div.append(email_div);
@@ -94,7 +93,7 @@ function load_mailbox(mailbox) {
   });
 }
 
-function load_email(id){
+function load_email(id, mailbox){
 
   // Show the email content and hide other views
   document.querySelector('#emails-view').style.display = 'none';
@@ -123,25 +122,95 @@ function load_email(id){
       // Display email content
       const content_div = document.createElement('div');
       content_div.innerHTML = `
-        <p><b>From:</b> ${email.sender}</p>
-        <p><b>To:</b> ${email.recipients}</p>
-        <p><b>Subject:</b> ${email.subject}</p>
-        <p><b>Timestemp:</b> ${email.timestamp}</p>
-        <button id="reply-email" class="btn btn-outline-primary">Reply</button>
-        <hr>
-        <p>${email.body}<p>
+      <div class="row">
+      <div class="col">
+          <p><b>From:</b> ${email.sender} </p>
+      </div>
+      ${mailbox !== 'sent' ? '<div class="col text-right"><button id="archive-email" class="btn btn-outline-primary">' + (email.archived ? 'Unarchive' : 'Archive') + '</button></div>' : ''}
+      </div>
+      <p><b>To:</b> ${email.recipients}</p>
+      <p><b>Subject:</b> ${email.subject}</p>
+      <p><b>Timestamp:</b> ${email.timestamp}</p>
+      <button id="reply-email" class="btn btn-outline-primary">Reply</button>
+      <hr>
+      <p>${email.body}<p>
       `;
       document.querySelector('#email-content-view').append(content_div);
 
+      // When archive/unarchive button is pressed
+      const archive_button = document.querySelector('#archive-email')
+      archive_button.addEventListener('click', event => {
+        event.preventDefault();
+        if (email.archived){
+          unarchive_email(email.id);
+        } else {
+          archive_email(email.id);
+        }
+      });
+    
       document.querySelector("#reply-email").addEventListener('click', event =>{
         event.preventDefault();
-      })
+       
+      });
   })
   .catch(error => {
     console.error('Error fetching email:', error);
   });
 
 }
+
+function archive_email(id, archive) {
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      archived: !archive
+    })
+  })
+  .then(response => {
+    // Check if the response status is 204 (No Content)
+    if (response.status === 204) {
+      // If successful, directly load the inbox mailbox
+      load_mailbox('inbox');
+    } else {
+      // If not 204, parse the response as JSON and log the result
+      return response.json().then(result => {
+        console.log(result);
+        // Once email has been archived, load inbox mailbox
+        load_mailbox('inbox');
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error archiving email:', error);
+  });
+}
+
+function unarchive_email(id){
+  fetch(`/emails/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+        archived: false
+    })
+  })
+  .then(response => {
+    // Check if the response status is 204 (No Content)
+    if (response.status === 204) {
+      // If successful, directly load the inbox mailbox
+      load_mailbox('inbox');
+    } else {
+      // If not 204, parse the response as JSON and log the result
+      return response.json().then(result => {
+        console.log(result);
+        // Once email has been archived, load inbox mailbox
+        load_mailbox('inbox');
+      });
+    }
+  })
+  .catch(error => {
+    console.error('Error archiving email:', error);
+  });
+}
+
 
 function send_email(){
   fetch('/emails', {
