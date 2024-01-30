@@ -112,13 +112,17 @@ function load_email(id, mailbox){
   });
 
   // Load email content
-  fetch(`/emails/${id}`)
+   fetch(`/emails/${id}`)
   .then(response => response.json())
   .then(email => {
       // Print email
       console.log(email);
 
       // ... do something else with email ...
+      
+      //Preserve line breaks in email content
+      email.body = email.body.replace(/\n/g, '<br>'); 
+
       // Display email content
       const content_div = document.createElement('div');
       content_div.innerHTML = `
@@ -133,7 +137,7 @@ function load_email(id, mailbox){
       <p><b>Timestamp:</b> ${email.timestamp}</p>
       <button id="reply-email" class="btn btn-outline-primary">Reply</button>
       <hr>
-      <p>${email.body}<p>
+      <p>${email.body}</p>
       `;
       document.querySelector('#email-content-view').append(content_div);
 
@@ -150,7 +154,7 @@ function load_email(id, mailbox){
     
       document.querySelector("#reply-email").addEventListener('click', event =>{
         event.preventDefault();
-       
+        reply_email(email);
       });
   })
   .catch(error => {
@@ -228,4 +232,21 @@ function send_email(){
       //Once email has been sent, load sent mailbox
       load_mailbox('sent');
   });
+}
+
+function reply_email(email){
+  compose_email();
+
+  replied = email.subject.slice(0,3) === "Re:";
+  // Prefill
+  document.querySelector('#compose-recipients').value = `${email.sender}`;
+  if (replied){
+    document.querySelector('#compose-subject').value = `${email.subject}`;
+  } else {
+    document.querySelector('#compose-subject').value = 'Re: ' + `${email.subject}`;
+  }
+  document.querySelector('#compose-body').value = `
+   On ${email.timestamp} ${email.sender} wrote:
+   ${email.body}
+  `;
 }
