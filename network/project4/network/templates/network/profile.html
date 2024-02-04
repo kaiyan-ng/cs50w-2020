@@ -1,0 +1,43 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+    <div class="card m-3">
+        <div class="card-body">
+            <div class="row">
+                <h2 class="card-title">{{username}}</h2> 
+                {% if not request.user.id == user_id and request.user.is_authenticated %}
+                <div class="col text-right">
+                    {% if not follow %}
+                    <a href="{% url 'follow' id=user_id %}" class="btn btn-outline-primary">Follow</a>
+                    {% else %}
+                    <a href="{% url 'unfollow' id=user_id %}" class="btn btn-primary">Unfollow</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="row">
+                <p><strong>{{followings}}</strong> <span class="text-secondary">Following</span>  <strong class="pl-3">{{followers}}</strong> <span class="text-secondary">Followers</span></p>
+            </div>
+        </div>
+    </div>
+    <hr>
+    <div class="card m-3">
+    <h5 class="card-header">Posts</h5>
+    {% for post in posts %}
+        <div class="card-body">
+            <a href="{% url 'profile' id=post.user.id %}">
+                <h5 class="text-dark card-title">{{post.user.username}}</h5>
+            </a>
+            <br>
+            {% if request.user.id == post.user.id %}
+            <a href="#">Edit</a>
+            {% endif %}
+            <p style="margin: 0px; padding: 0px;">{{ post.content }}</p>
+            <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.created_date }}</p>
+            <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.likes }}</p>
+            <a class="text-secondary" href="#">Comment</a>
+        </div>
+      </div>
+      {% endfor %}
+
+{% endblock %}

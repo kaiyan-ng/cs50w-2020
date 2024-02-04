@@ -1,14 +1,38 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from django import forms
+from .models import User, Post, Follow
 
-from .models import User
 
+class NewPostForm(forms.Form):
+    content = forms.CharField(label="", widget=forms.Textarea(attrs={"rows":3, "style": "width: 100%;"}))
 
 def index(request):
-    return render(request, "network/index.html")
+    posts = Post.objects.all().order_by('-created_date')
+    if request.method == "POST":
+        form = NewPostForm(request.POST)
+        if form.is_valid():
+            new_content = form.cleaned_data["content"]
+            new_post = Post(user=request.user, content=new_content)
+            new_post.save()
+            return render(request, "network/index.html", {
+                "form": NewPostForm(),
+                "posts": posts
+            })
+        else: 
+           return render(request, "network/index.html", {
+                "form": form,
+                "posts": posts
+            })
+    else:
+        return render(request, "network/index.html", {
+            "form": NewPostForm(),
+            "posts": posts
+        })
 
 
 def login_view(request):
@@ -61,3 +85,57 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "network/register.html")
+
+def view_profile(request, id):
+    profile_user = User.objects.get(pk=id)
+    is_following = False
+    if request.user.is_authenticated:
+        acc_user = request.user
+        # Check if profile does not belong to user 
+        if not request.user.id == id:
+            # Is user following the profile
+            is_following = Follow.objects.filter(follower=acc_user, following=profile_user).exists()
+    else:
+        acc_user=None
+    username = User.objects.get(pk=id).username
+    posts = Post.objects.filter(user=User.objects.get(pk=id)).order_by('-created_date')
+    followers = Follow.objects.filter(following=profile_user).count()
+    followings = Follow.objects.filter(follower=profile_user).count()
+    return render(request, "network/profile.html", {
+        "user_id": id,
+        "username": username,
+        "posts": posts,
+        "follow": is_following,
+        "followers": followers,
+        "followings": followings
+    })
+
+@login_required
+def follow(request, id):
+    new_follower = User.objects.get(pk=request.user.id)
+    new_following = User.objects.get(pk=id)
+    new_following = Follow(follower=new_follower, following=new_following)
+    new_following.save()
+    return HttpResponseRedirect(reverse("profile", kwargs={'id': id}))
+
+@login_required
+def unfollow(request, id):
+    follower = User.objects.get(pk=request.user.id)
+    following = User.objects.get(pk=id)
+
+     # Attempt to retrieve the Follow object
+    follow_obj = Follow.objects.filter(follower=follower, following=following).first()
+
+    # If the Follow object exists, delete it
+    if follow_obj:
+        follow_obj.delete()
+
+    return HttpResponseRedirect(reverse("profile", kwargs={'id': id}))
+
+@login_required
+def view_following(request):
+    followings = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+    posts = Post.objects.filter(user__in=followings).order_by('-created_date')
+    return render(request, "network/following.html", {
+        "posts": posts
+    })
