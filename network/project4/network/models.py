@@ -20,6 +20,7 @@ class Post(models.Model):
             "id": self.id,
             "user_id": self.user.id,
             "username": self.user.username,
+            "content": self.content,
             "created_date": self.created_date.strftime("%b %d %Y, %I:%M %p"),
             "updated_date": self.created_date.strftime("%b %d %Y, %I:%M %p"),
             "likes": self.likes

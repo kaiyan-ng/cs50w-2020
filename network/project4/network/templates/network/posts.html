@@ -1,18 +1,22 @@
+{% load static %}
+
 <div class="m-3">
     {% for post in pages %}
     <div class="card mb-3">
-        <div class="card-body">
+        <div class="card-body" id="post-{{ post.id }}">
             <a href="{% url 'profile' id=post.user.id %}">
                 <h5 class="text-dark card-title">{{post.user.username}}</h5>
             </a>
             <br>
             {% if request.user.id == post.user.id %}
-            <a href="#">Edit</a>
+            <button class="btn btn-link p-0 edit-post" data-post-id="{{ post.id }}">Edit</button>
             {% endif %}
             <p style="margin: 0px; padding: 0px;">{{ post.content }}</p>
             <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.created_date }}</p>
+            {% if not post.updated_date == post.created_date %}
+            <p class="text-secondary" style="margin: 0px; padding: 0px;">Last edited {{ post.updated_date }}</p>
+            {% endif %}
             <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.likes }}</p>
-            <a class="text-secondary" href="#">Comment</a>
         </div>
       </div>
       {% endfor %}
@@ -35,4 +39,8 @@
             </ul>
         </span>
     </div>
+
+{% block script %}
+    <script src="{% static 'network/post.js' %}"></script>
+{% endblock %}
 
