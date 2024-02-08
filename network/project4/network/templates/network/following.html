@@ -3,22 +3,6 @@
 {% block body %}
 <div class="m-3">
     <h2> All Posts </h2>
-    {% for post in posts %}
-    <div class="card">
-        <div class="card-body">
-            <a href="{% url 'profile' id=post.user.id %}">
-                <h5 class="text-dark card-title">{{post.user.username}}</h5>
-            </a>
-            <br>
-            {% if request.user.id == post.user.id %}
-            <a href="#">Edit</a>
-            {% endif %}
-            <p style="margin: 0px; padding: 0px;">{{ post.content }}</p>
-            <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.created_date }}</p>
-            <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.likes }}</p>
-            <a class="text-secondary" href="#">Comment</a>
-        </div>
-      </div>
-      {% endfor %}
+      {% include "network/posts.html" %}
     </div>
 {% endblock %}

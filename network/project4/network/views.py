@@ -1,13 +1,13 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django import forms
 from .models import User, Post, Follow
 from django.core.paginator import Paginator
-
 
 class NewPostForm(forms.Form):
     content = forms.CharField(label="", widget=forms.Textarea(attrs={"rows":3, "style": "width: 100%;"}))
@@ -29,19 +29,16 @@ def index(request):
             page_obj = paginator.get_page(page_number)
             return render(request, "network/index.html", {
                 "form": NewPostForm(),
-                "posts": posts,
                 "pages": page_obj
             })
         else: 
            return render(request, "network/index.html", {
                 "form": form,
-                "posts": posts,
                 "pages": page_obj
             })
     else:
         return render(request, "network/index.html", {
             "form": NewPostForm(),
-            "posts": posts,
             "pages": page_obj
         })
 
@@ -109,12 +106,15 @@ def view_profile(request, id):
         acc_user=None
     username = User.objects.get(pk=id).username
     posts = Post.objects.filter(user=User.objects.get(pk=id)).order_by('-created_date')
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     followers = Follow.objects.filter(following=profile_user).count()
     followings = Follow.objects.filter(follower=profile_user).count()
     return render(request, "network/profile.html", {
         "user_id": id,
         "username": username,
-        "posts": posts,
+        "pages": page_obj,
         "follow": is_following,
         "followers": followers,
         "followings": followings
@@ -146,6 +146,35 @@ def unfollow(request, id):
 def view_following(request):
     followings = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
     posts = Post.objects.filter(user__in=followings).order_by('-created_date')
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     return render(request, "network/following.html", {
-        "posts": posts
+        "pages": page_obj
     })
+
+@login_required
+def post(request, post_id):
+    # Query for requested post
+    try:
+       post = Post.objects.get(user=request.user, pk=post_id)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Post not found."}, status=404)
+
+    # Return post details
+    if request.method == "GET":
+        return JsonResponse(post.serialize())
+
+    # Update post content
+    elif request.method == "PUT":
+        data = json.loads(request.body)
+        if data.get("content") is not None:
+            post.content = data["content"]
+        post.save()
+        return HttpResponse(status=204)
+
+    # Email must be via GET or PUT
+    else:
+        return JsonResponse({
+            "error": "GET or PUT request required."
+        }, status=400)
