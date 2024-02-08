@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django import forms
 from .models import User, Post, Follow
+from django.core.paginator import Paginator
 
 
 class NewPostForm(forms.Form):
@@ -13,27 +14,36 @@ class NewPostForm(forms.Form):
 
 def index(request):
     posts = Post.objects.all().order_by('-created_date')
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     if request.method == "POST":
         form = NewPostForm(request.POST)
         if form.is_valid():
             new_content = form.cleaned_data["content"]
             new_post = Post(user=request.user, content=new_content)
             new_post.save()
+            posts = Post.objects.all().order_by('-created_date')
+            paginator = Paginator(posts, 10)
+            page_number = request.GET.get('page')
+            page_obj = paginator.get_page(page_number)
             return render(request, "network/index.html", {
                 "form": NewPostForm(),
-                "posts": posts
+                "posts": posts,
+                "pages": page_obj
             })
         else: 
            return render(request, "network/index.html", {
                 "form": form,
-                "posts": posts
+                "posts": posts,
+                "pages": page_obj
             })
     else:
         return render(request, "network/index.html", {
             "form": NewPostForm(),
-            "posts": posts
+            "posts": posts,
+            "pages": page_obj
         })
-
 
 def login_view(request):
     if request.method == "POST":

@@ -1,6 +1,6 @@
 <div class="m-3">
     <h2> All Posts </h2>
-    {% for post in posts %}
+    {% for post in pages %}
     <div class="card mb-3">
         <div class="card-body">
             <a href="{% url 'profile' id=post.user.id %}">
@@ -17,4 +17,23 @@
         </div>
       </div>
       {% endfor %}
+
+
+      <div class="pagination">
+        <span class="step-links">
+            <ul class="pagination">
+                {% if pages.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ pages.previous_page_number }}">Previous</a></li>
+                {% endif %}
+        
+                <!--<span class="current">
+                    Page {{ pages.number }} of {{ pages.paginator.num_pages }}.
+                </span> -->
+        
+                {% if pages.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ pages.next_page_number }}">Next</a></li>
+                {% endif %}
+            </ul>
+        </span>
     </div>
+
