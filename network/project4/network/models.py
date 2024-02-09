@@ -36,3 +36,21 @@ class Follow(models.Model):
     class Meta:
         # Add a unique constraint to ensure each combination of follower and following is unique
         unique_together = ('follower', 'following')
+
+class Like(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name="liked_post")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="liked_user")
+
+    def __str__(self):
+        return f"{self.user.username} liked Post {self.post.id}"
+    
+    class Meta:
+        unique_together = ('post', 'user')
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "user_id": self.user.id,
+            "username": self.user.username,
+            "post_id": self.post.id
+        }

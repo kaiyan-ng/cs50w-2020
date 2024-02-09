@@ -13,10 +13,12 @@
             {% endif %}
             <p style="margin: 0px; padding: 0px;">{{ post.content }}</p>
             <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.created_date }}</p>
-            {% if not post.updated_date == post.created_date %}
-            <p class="text-secondary" style="margin: 0px; padding: 0px;">Last edited {{ post.updated_date }}</p>
-            {% endif %}
-            <p class="text-secondary" style="margin: 0px; padding: 0px;">{{ post.likes }}</p>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-link p-0 like-post" data-post-id="{{ post.id }}">
+                    <i id="like-{{ post.id }}" class="fa fa-heart-o" aria-hidden="true" style="color:palevioletred;"></i>
+                </button>
+                <p class="text-secondary mb-0 ml-1">{{ post.likes }}</p>
+            </div>
         </div>
       </div>
       {% endfor %}

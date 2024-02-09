@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django import forms
-from .models import User, Post, Follow
+from .models import User, Post, Follow, Like
 from django.core.paginator import Paginator
 
 class NewPostForm(forms.Form):
@@ -176,6 +176,42 @@ def post(request, post_id):
         return HttpResponse(status=204)
 
     # Email must be via GET or PUT
+    else:
+        return JsonResponse({
+            "error": "GET or PUT request required."
+        }, status=400)
+
+@csrf_exempt
+@login_required
+def like(request, post_id):
+    try:
+       post = Post.objects.get(pk=post_id)
+    except Post.DoesNotExist:
+        return JsonResponse({"error": "Post not found."}, status=404)
+    
+    if request.method == "PUT":
+        try:
+            # Check if the user already liked the post
+            like = Like.objects.get(user=request.user, post=post)
+            like.delete()
+            post.likes -= 1
+        except Like.DoesNotExist:
+            Like.objects.create(user=request.user, post=post)
+            post.likes += 1
+            
+        post.save()  # Save the updated like count
+
+        return HttpResponse(status=204)
+    elif request.method == "GET":
+        try:
+            like = Like.objects.get(user=request.user, post=post)
+            # User has liked the post
+            return JsonResponse({"liked": True})
+        except Like.DoesNotExist:
+            # User has not liked the post
+            return JsonResponse({"liked": False})
+        
+        return JsonResponse(like.serialize())
     else:
         return JsonResponse({
             "error": "GET or PUT request required."
